@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import models, fields, api, exceptions
 
 import requests
 
@@ -73,7 +73,7 @@ class Beds24Booking(models.Model):
                 'view_mode': 'tree',
                 'res_model': 'beds24.booking',
                 'view_id': self.env.ref('hotel_reservation_beds24.beds24_bookings_list_view').id,
-                'target': 'new',
+                'target': 'current',
                 'type': 'ir.actions.act_window',
             }
 

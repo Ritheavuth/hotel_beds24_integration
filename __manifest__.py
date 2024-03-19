@@ -16,6 +16,7 @@
         'views/views.xml',
         'views/actions.xml',
         'views/menu.xml',
+        'wizards/authorize_wizard_view.xml'
     ],
     'application': True,
     'installable': True,
