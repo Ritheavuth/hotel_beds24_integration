@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<odoo>
+
+    <menuitem id="beds_24" name="Beds24" action="action_beds24_bookings_list" web_icon="hotel_reservation_beds24,static/description/icon.png" />
+
+    <menuitem id="bookings_main" name="Bookings" parent="beds_24" />
+    <menuitem id="bookings_all_bookings" name="All Bookings" action="action_beds24_bookings_list" parent="bookings_main" />
+    <menuitem id="bookings_get_bookings" name="Get Bookings" action="action_beds24_get_bookings" parent="bookings_main" />
+
+</odoo>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<odoo>
+
+    <record id="action_beds24_bookings_list" model="ir.actions.act_window">
+
+        <field name="name">Beds24 Booking List</field>
+        <field name="res_model">beds24.booking</field>
+        <field name="view_mode">tree</field>
+
+    </record>
+
+    <record id="action_beds24_get_bookings" model="ir.actions.server">
+        <field name="name">Get Bookings Beds24</field>
+        <field name="model_id" ref="model_beds24_booking"/>
+        <field name="state">code</field>
+        <field name="code">model.get_bookings()</field>
+    </record>
+
+</odoo>
