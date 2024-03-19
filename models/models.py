@@ -1,4 +1,4 @@
-from odoo import models, fields, api, exceptions
+from odoo import models, fields, api, exceptions, _
 
 import requests
 
@@ -23,59 +23,48 @@ class Beds24Booking(models.Model):
 
     @api.model
     def get_bookings(self):
-
         auth_token = self.env['ir.config_parameter'].get_param("beds24_token")
 
-        url = 'https://beds24.com/api/v2/bookings'
+        if not auth_token:
+            raise exceptions.UserError(_("Token doesn't exist. Please configure the Beds24 token by Authorize."))
 
-        # Define the headers
+        url = 'https://beds24.com/api/v2/bookings'
         headers = {
             'accept': 'application/json',
             'token': auth_token
         }
 
-        # Make the GET request
         response = requests.get(url, headers=headers)
 
-        # Check if the request was successful
         if response.status_code == 200:
             data = response.json()
-
-            print("RESPONSE DATA", data)
-
             bookings = data["data"]
 
-            print("BOOKINGS DATA", bookings)
-
             for booking in bookings:
-                # Check if a booking with the same name already exists
                 existing_booking = self.search([('name', '=', f"B24/{booking['id']}")]).exists()
                 if not existing_booking:
-                    # If not, create a new booking
                     self.create({
                         "name": f"B24/{booking['id']}",
                         "status": booking['status'],
                     })
-                
                 else:
-                    # If it exists, update the status
                     existing_booking_ids = self.search([('name', '=', f"B24/{booking['id']}")]).ids
                     self.browse(existing_booking_ids).write({
                         "status": booking['status'],
                     })
 
         else:
-            raise ValueError(f"Request failed with status code {response.status_code}")
+            raise exceptions.AccessError(_(f"Request failed with status code {response.status_code}"))
         
-
         return {
-                'name': 'Beds24 Booking List',
-                'view_mode': 'tree',
-                'res_model': 'beds24.booking',
-                'view_id': self.env.ref('hotel_reservation_beds24.beds24_bookings_list_view').id,
-                'target': 'current',
-                'type': 'ir.actions.act_window',
-            }
+            'name': 'Beds24 Booking List',
+            'view_mode': 'tree',
+            'res_model': 'beds24.booking',
+            'view_id': self.env.ref('hotel_reservation_beds24.beds24_bookings_list_view').id,
+            'target': 'current',
+            'type': 'ir.actions.act_window',
+        }
+
 
         
 class Beds24Property(models.Model):
