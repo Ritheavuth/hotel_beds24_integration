@@ -11,14 +11,155 @@
         <field name="arch" type="xml">
             <tree>
 
-                <field name="name" string="Booking ID" />
-
-                <field name="status" string="Status" />
+                <field name="name" />
+                <field name="first_name" />
+                <field name="last_name" />
+                <field name="num_adult" />
+                <field name="num_children" />
+                <field name="booking_date" />
+                <field name="arrival_date" />
+                <field name="departure_date" />
+                <field name="room_id" />
+                <field name="status" />
 
             </tree>
         </field>
     </record>
 
+    <record id="beds24_bookings_form_view" model="ir.ui.view">
+
+        <field name="name">beds24.bookings.form.view</field>
+        <field name="model">beds24.booking</field>
+        <field name="arch" type="xml">
+            <form>
+
+                <sheet>
+                    <header>
+                        <button name="create_hotel_reservation" string="Create Reservation" type="object" class="btn btn-primary" />
+                    </header>
+
+                    <group>
+                        <field name="name" readonly="1" />
+                        <field name="first_name" readonly="1" />
+                        <field name="last_name" readonly="1" />
+                        <field name="num_adult" readonly="1" />
+                        <field name="num_children" readonly="1" />
+                        <field name="booking_date" readonly="1" />
+                        <field name="arrival_date" readonly="1" />
+                        <field name="departure_date" readonly="1" />
+                        <field name="room_id" readonly="1" />
+                        <field name="status" readonly="1" />
+                    </group>
+                </sheet>
+
+            </form>
+        </field>
+    </record>
+
     <!-- End Booking Views -->
+
+    <!-- Start Room Views -->
+
+    <record id="beds24_room_list_view" model="ir.ui.view">
+
+        <field name="name">beds24.room.list.view</field>
+        <field name="model">beds24.room</field>
+        <field name="arch" type="xml">
+            <tree>
+
+                <field name="name" />
+                <field name="room_id" />
+                <field name="property_id" />
+                <field name="qty" />
+                <field name="max_people" />
+                <field name="max_adult" />
+                <field name="max_children" />
+
+            </tree>
+        </field>
+    </record>
+
+    <record id="beds24_rooms_form_view" model="ir.ui.view">
+
+        <field name="name">beds24.rooms.form.view</field>
+        <field name="model">beds24.room</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+
+                        <field name="name" />
+                        <field name="room_id" />
+                        <field name="property_id" />
+                        <field name="qty" />
+                        <field name="max_people" />
+                        <field name="max_adult" />
+                        <field name="max_children" />
+                        
+                    </group>
+                </sheet>
+
+            </form>
+        </field>
+    </record>
+
+    <!-- End Room Views -->
+
+    <!-- Inherited Views -->
+
+    <record model="ir.ui.view" id="view_hotel_reservation_form_inherit">
+        <field name="name">hotel.reservation.form.inherit</field>
+        <field name="model">hotel.reservation</field>
+        <field name="inherit_id" ref="hotel_reservation.view_hotel_reservation_form"/>
+        <field name="arch" type="xml">
+            <data>
+                <field name="warehouse_id" position="after">
+                    <field name="beds24_booking_id" attrs="{'readonly':[('state', '==', 'cancel')]}"/>
+                </field>
+            </data>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_product_form_inherit">
+        <field name="name">product.template.form.inherit</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <data>
+                <field name="type" position="after">
+                    <field name="beds24_room_id"/>
+                </field>
+            </data>
+        </field>
+    </record>
+
+
+    <record model="ir.ui.view" id="view_hotel_room_form_inherit">
+        <field name="name">view.hotel.room.form.inherit</field>
+        <field name="model">hotel.room</field>
+        <field name="inherit_id" ref="hotel.view_hotel_room_form"/>
+        <field name="arch" type="xml">
+            <data>
+                <field name="room_categ_id" position="after">
+                    <field name="beds24_room_id" readonly="1"/>
+                </field>
+            </data>
+        </field>
+    </record>
+
+
+
+    <!-- End Inherited Views -->
+
+    <!-- Beds24 Room Config -->
+
+    <!-- <record id="view_beds24_room_config" model="ir.ui.view">
+
+        <field name="name">Room Config</field>
+        <field name="model">hotel.room</field>
+
+    </record> -->
+
+    <!-- End Beds24 Room Config -->
 
 </odoo>

@@ -9,6 +9,7 @@
         'base',
         'hotel',
         'hotel_reservation',
+        'product',
     ],
     'data': [
         'security/security.xml',

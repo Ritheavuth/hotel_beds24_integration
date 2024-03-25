@@ -27,10 +27,12 @@ class AuthorizeWizard(models.TransientModel):
             print(data)
 
             token = data["token"]
+            refresh_token = data["refreshToken"]
 
             if token:
                 # Store the token in the system parameter
                 self.env['ir.config_parameter'].set_param('beds24_token', token)
+                self.env['ir.config_parameter'].set_param('beds24_refresh_token', refresh_token)
 
                 token = self.env['ir.config_parameter'].get_param('beds24_token')
 
@@ -49,3 +51,4 @@ class AuthorizeWizard(models.TransientModel):
             print("Error", data)
 
             raise exceptions.UserError(f"{data['error']}")
+        

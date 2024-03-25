@@ -6,7 +6,7 @@
 
         <field name="name">Beds24 Booking List</field>
         <field name="res_model">beds24.booking</field>
-        <field name="view_mode">tree</field>
+        <field name="view_mode">tree,form</field>
 
     </record>
 
@@ -14,7 +14,22 @@
         <field name="name">Get Bookings Beds24</field>
         <field name="model_id" ref="model_beds24_booking"/>
         <field name="state">code</field>
-        <field name="code">model.get_bookings()</field>
+        <field name="code">model.get_beds24_bookings()</field>
+    </record>
+
+    <record id="action_beds24_rooms_list" model="ir.actions.act_window">
+
+        <field name="name">Beds24 Booking List</field>
+        <field name="res_model">beds24.room</field>
+        <field name="view_mode">tree,form</field>
+
+    </record>
+
+    <record id="action_beds24_get_rooms" model="ir.actions.server">
+        <field name="name">Get Rooms Beds24</field>
+        <field name="model_id" ref="model_beds24_room"/>
+        <field name="state">code</field>
+        <field name="code">model.get_beds24_rooms()</field>
     </record>
 
 </odoo>

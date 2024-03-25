@@ -7,5 +7,9 @@
     <menuitem id="bookings_main" name="Bookings" parent="beds_24" sequence="1" />
     <menuitem id="bookings_all_bookings" name="All Bookings" action="action_beds24_bookings_list" parent="bookings_main" />
     <menuitem id="bookings_get_bookings" name="Get Bookings" action="action_beds24_get_bookings" parent="bookings_main" />
+    
+    <menuitem id="rooms_main" name="Rooms" parent="beds_24" sequence="1" />
+    <menuitem id="rooms_all_rooms" name="All Rooms" action="action_beds24_rooms_list" parent="rooms_main" />
+    <menuitem id="rooms_get_rooms" name="Get Rooms" action="action_beds24_get_rooms" parent="rooms_main" />
 
 </odoo>

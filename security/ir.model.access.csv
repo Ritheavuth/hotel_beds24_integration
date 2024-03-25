@@ -1,3 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_hotel_reservation_beds24_beds24_booking,access_hotel_reservation_beds24.beds24_booking,model_beds24_booking,,1,1,1,1
+access_hotel_reservation_beds24_beds24_room,access_hotel_reservation_beds24.beds24_room,model_beds24_room,,1,1,1,1
 access_authorize_wizard,access_authorize.wizard,model_authorize_wizard,,1,1,1,0

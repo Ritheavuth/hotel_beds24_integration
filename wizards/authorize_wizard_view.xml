@@ -7,6 +7,7 @@
         <field name="model">authorize.wizard</field>
         <field name="arch" type="xml">
             <form>
+                <p>Invite Codes can be generated here <a href="https://beds24.com/control3.php?pagetype=apiv2">https://beds24.com/control3.php?pagetype=apiv2</a></p>
                 <group>
                     <field name="invite_code" string="Invite Code"/>
                     <footer>
