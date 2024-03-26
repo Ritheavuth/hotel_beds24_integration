@@ -10,7 +10,6 @@
         <field name="model">beds24.booking</field>
         <field name="arch" type="xml">
             <tree>
-
                 <field name="name" />
                 <field name="first_name" />
                 <field name="last_name" />
@@ -21,7 +20,6 @@
                 <field name="departure_date" />
                 <field name="room_id" />
                 <field name="status" />
-
             </tree>
         </field>
     </record>

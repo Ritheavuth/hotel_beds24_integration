@@ -2,106 +2,12 @@ from odoo import models, fields, api, exceptions, _
 
 import requests
 
+from datetime import datetime
+
 from dateutil.parser import parse
 
 
 base_url = "https://beds24.com/api/v2"
-
-
-class Product(models.Model):
-    _inherit = 'product.template'
-    _description = "Inherit product.category model to some customize fields"
-
-    beds24_room_id = fields.Char(string="Beds24 Room ID", unique=True)
-
-
-class HotelRoom(models.Model):
-    _inherit = "hotel.room"
-    _description = "Inheriting Hotel Room to add additional fields"
-
-    beds24_room_id = fields.Char(string="Beds24 Room ID", unique=True)
-
-
-class HotelReservation(models.Model):
-    _inherit = "hotel.reservation"
-    _description = "Inheriting Hotel reservation to add additional fields"
-
-    beds24_booking_id = fields.Char(string="Beds24 Booking ID")
-
-
-class Beds24Room(models.Model):
-    _name = "beds24.room"
-
-    name = fields.Char(unique=True, required=True)
-    room_id = fields.Char(string="Room ID", required=True)
-    property_id = fields.Char(string="Property ID", required=True)
-    qty = fields.Integer(string="Qty")
-    max_people = fields.Integer(string="Max People")
-    max_adult =  fields.Integer(string="Max Adult")
-    max_children =  fields.Integer(string="Max Children")
-
-    def get_beds24_rooms(self):
-        
-        auth_token = self.env['ir.config_parameter'].get_param("beds24_token")
-
-        if not auth_token:
-            raise exceptions.UserError(_("Token doesn't exist. Please configure the Beds24 token by Authorize."))
-
-        property_id = "226937" # Property ID for Testing
-
-        url = f'https://beds24.com/api/v2/properties?id={property_id}&includeAllRooms=true'
-        headers = {
-            'accept': 'application/json',
-            'token': auth_token
-        }
-
-        response = requests.get(url, headers=headers)
-
-        hotel_room_obj = self.env['hotel.room']
-
-        if response.status_code == 200:
-
-            data = response.json()
-
-            rooms = data['data'][0]['roomTypes']
-
-            for room in rooms:
-                existing_room = self.search([('room_id', '=', f"{room['id']}")]).exists()
-                if not existing_room:
-                    new_room = self.create({
-                        "name": f"{room['name']}",
-                        "room_id": room['id'],
-                        "property_id": room['propertyId'],
-                        "qty": room['qty'],
-                        "max_people": room['maxPeople'],
-                        "max_adult": room['maxAdult'],
-                        "max_children": room['maxChildren'],
-                    })
-                
-
-                    
-                else:
-                    existing_room_ids = self.search([('room_id', '=', f"{room['id']}")]).ids
-                    self.browse(existing_room_ids).write({
-                        "qty": room.get('qty', 0),
-                        "max_people": room.get('maxPeople', 0),
-                        "max_adult": room.get('maxAdult', 0),
-                        "max_children": room.get('maxChildren', 0),
-                    })
-
-                hotel_exist = hotel_room_obj.search([('name', '=', room['name'])]).exists()
-
-                if hotel_exist:
-
-                        existing_room_ids = hotel_room_obj.search([('name', '=', room['name'])]).ids
-
-                        hotel_room_obj.browse(existing_room_ids).write({
-                            'beds24_room_id': room['id']
-                        })
-
-                else:
-
-                    return exceptions.ValidationError(_(f"{room['name']} doesn't exist"))
 
 class Beds24Booking(models.Model):
     _name = "beds24.booking"
@@ -201,8 +107,10 @@ class Beds24Booking(models.Model):
             response = requests.get(url, headers=headers)
 
             if response.status_code == 200:
+                
+                response = response.json()
 
-                token = response.get("token", "")
+                token = response['token']
                 
                 self.env['ir.config_parameter'].set_param('beds24_token', token)
 
@@ -211,7 +119,6 @@ class Beds24Booking(models.Model):
             else:
 
                 raise exceptions.AccessError(_(f"Request failed with status code {response.status_code}"))
-
 
         else:
             raise exceptions.AccessError(_(f"Request failed with status code {response.status_code}"))
@@ -231,13 +138,14 @@ class Beds24Booking(models.Model):
         hotel_room_obj = self.env['hotel.room']
         partner_obj = self.env['res.partner']
         hotel_room_reservation_line_obj = self.env['hotel.room.reservation.line']
+        hotel_reservation_line_obj = self.env['hotel_reservation.line']
         hotel_reservation_obj = self.env['hotel.reservation']
 
         if self.status == "cancelled":
             return exceptions.ValidationError(_(f'Booking ID ({self.name}) is already cancelled.'))
         else:
 
-            date_ordered = parse(self.booking_date)
+            date_ordered = datetime.strptime(self.booking_date, "%Y-%m-%dT%H:%M:%SZ")
             check_in = str(self.arrival_date) + "T07:00:00"
             check_out = str(self.departure_date) + "T05:00:00"
 
@@ -245,6 +153,7 @@ class Beds24Booking(models.Model):
             beds24_checkout = parse(check_out)
             reservation_line = []
 
+            print("Date", beds24_checkin, beds24_checkout)
 
             # Check Guest Logic
 
@@ -274,27 +183,150 @@ class Beds24Booking(models.Model):
                 guest['property_account_payable_id'] = property_account_payable_id
             
             # End Guest
-                
-            # Check Room Exist
 
-            room = hotel_room_obj.search([('beds24_room_id', '=', self.room_id)])
+            # Assuming room_id is a single room ID
+            room = hotel_room_obj.search([('beds24_room_id', '=', self.room_id)], limit=1)
 
-            print("ROOM", room)
+            if not room:
+                raise exceptions.ValidationError(_("Room not found for ID: {}").format(self.room_id))
+
+            if room.status == "available":
+                vals = {
+                    'date_order': date_ordered,
+                    'checkin': beds24_checkin,
+                    'checkout': beds24_checkout,
+                    'beds24_booking_id': self.name,
+                    'partner_id': partner_id,
+                    'partner_shipping_id': partner_id,
+                    'partner_order_id': partner_id,
+                    'partner_invoice_id': partner_id,
+                    'pricelist_id': 4,
+                }
+                reservation_id = hotel_reservation_obj.create(vals)
+
+                room_reservation_line_vals = {
+                    'room_id': room.id,
+                    'reservation_id': reservation_id.id,
+                    'check_in': reservation_id.checkin,
+                    'check_out': reservation_id.checkout,
+                    'state': 'assigned',
+                }
+                new_line = hotel_room_reservation_line_obj.create(room_reservation_line_vals)
+
+                reservation_line.append(new_line)
+
+                reservation_line_vals = {
+                    'line_id': reservation_id.id,
+                    'categ_id': room.room_categ_id.id,
+                    'name': False,
+                    'reserve': [[6, False, [room.id]]]
+                }
+
+                room = room.write({'isroom': False, 'status': 'occupied'})
+
+                new_reservation_line = hotel_reservation_line_obj.create(reservation_line_vals)
             
-            vals = {
-                'date_order': date_ordered,
-                'checkin': beds24_checkin,
-                'checkout': beds24_checkout,
-                'warehouse_id': self.env['stock.warehouse'].browse([38]).id,
-                'booking_id': self.name,
-                'partner_id': partner_id,
-                'partner_shipping_id': partner_id,
-                'partner_order_id': partner_id,
-                'partner_invoice_id': partner_id,
-                'pricelist_id': 4,
-                'reservation_line_ids': reservation_line
-            }
-            reservation_id = hotel_reservation_obj.create(vals)
+            else:
+
+                raise exceptions.ValidationError(_("Room is already occupied"))
+
+
+
+
+class Product(models.Model):
+    _inherit = 'product.template'
+    _description = "Inherit product.category model to some customize fields"
+
+    beds24_room_id = fields.Char(string="Beds24 Room ID", unique=True)
+
+
+class HotelRoom(models.Model):
+    _inherit = "hotel.room"
+    _description = "Inheriting Hotel Room to add additional fields"
+
+    beds24_room_id = fields.Char(string="Beds24 Room ID", unique=True)
+
+
+class HotelReservation(models.Model):
+    _inherit = "hotel.reservation"
+    _description = "Inheriting Hotel reservation to add additional fields"
+
+    beds24_booking_id = fields.Char(string="Beds24 Booking ID")
+
+
+class Beds24Room(models.Model):
+    _name = "beds24.room"
+
+    name = fields.Char(unique=True, required=True)
+    room_id = fields.Char(string="Room ID", required=True)
+    property_id = fields.Char(string="Property ID", required=True)
+    qty = fields.Integer(string="Qty")
+    max_people = fields.Integer(string="Max People")
+    max_adult =  fields.Integer(string="Max Adult")
+    max_children =  fields.Integer(string="Max Children")
+
+    def get_beds24_rooms(self):
+        
+        auth_token = self.env['ir.config_parameter'].get_param("beds24_token")
+
+        if not auth_token:
+            raise exceptions.UserError(_("Token doesn't exist. Please configure the Beds24 token by Authorize."))
+
+        property_id = "226937" # Property ID for Testing
+
+        url = f'https://beds24.com/api/v2/properties?id={property_id}&includeAllRooms=true'
+        headers = {
+            'accept': 'application/json',
+            'token': auth_token
+        }
+
+        response = requests.get(url, headers=headers)
+
+        hotel_room_obj = self.env['hotel.room']
+
+        if response.status_code == 200:
+
+            data = response.json()
+
+            rooms = data['data'][0]['roomTypes']
+
+            for room in rooms:
+                existing_room = self.search([('room_id', '=', f"{room['id']}")]).exists()
+                if not existing_room:
+                    new_room = self.create({
+                        "name": f"{room['name']}",
+                        "room_id": room['id'],
+                        "property_id": room['propertyId'],
+                        "qty": room['qty'],
+                        "max_people": room['maxPeople'],
+                        "max_adult": room['maxAdult'],
+                        "max_children": room['maxChildren'],
+                    })
+                
+
+                    
+                else:
+                    existing_room_ids = self.search([('room_id', '=', f"{room['id']}")]).ids
+                    self.browse(existing_room_ids).write({
+                        "qty": room.get('qty', 0),
+                        "max_people": room.get('maxPeople', 0),
+                        "max_adult": room.get('maxAdult', 0),
+                        "max_children": room.get('maxChildren', 0),
+                    })
+
+                hotel_exist = hotel_room_obj.search([('name', '=', room['name'])]).exists()
+
+                if hotel_exist:
+
+                        existing_room_ids = hotel_room_obj.search([('name', '=', room['name'])]).ids
+
+                        hotel_room_obj.browse(existing_room_ids).write({
+                            'beds24_room_id': room['id']
+                        })
+
+                else:
+
+                    return exceptions.ValidationError(_(f"{room['name']} doesn't exist"))
 
 
         

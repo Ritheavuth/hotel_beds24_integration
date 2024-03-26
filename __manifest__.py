@@ -8,8 +8,8 @@
     'depends': [
         'base',
         'hotel',
+        'stock',
         'hotel_reservation',
-        'product',
     ],
     'data': [
         'security/security.xml',
