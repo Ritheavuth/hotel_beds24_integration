@@ -118,19 +118,6 @@
         </field>
     </record>
 
-    <record model="ir.ui.view" id="view_product_form_inherit">
-        <field name="name">product.template.form.inherit</field>
-        <field name="model">product.template</field>
-        <field name="inherit_id" ref="product.product_template_only_form_view"/>
-        <field name="arch" type="xml">
-            <data>
-                <field name="type" position="after">
-                    <field name="beds24_room_id"/>
-                </field>
-            </data>
-        </field>
-    </record>
-
 
     <record model="ir.ui.view" id="view_hotel_room_form_inherit">
         <field name="name">view.hotel.room.form.inherit</field>
@@ -150,14 +137,10 @@
     <!-- End Inherited Views -->
 
     <!-- Beds24 Room Config -->
+    
 
-    <!-- <record id="view_beds24_room_config" model="ir.ui.view">
-
-        <field name="name">Room Config</field>
-        <field name="model">hotel.room</field>
-
-    </record> -->
-
+    
+    
     <!-- End Beds24 Room Config -->
 
 </odoo>
