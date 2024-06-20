@@ -20,6 +20,7 @@
                 <field name="departure_date" />
                 <field name="room_id" />
                 <field name="status" />
+                <field name="property_id" />
             </tree>
         </field>
     </record>
@@ -46,6 +47,7 @@
                         <field name="arrival_date" readonly="1" />
                         <field name="departure_date" readonly="1" />
                         <field name="room_id" readonly="1" />
+                        <field name="property_id" readonly="1" />
                         <field name="status" readonly="1" />
                     </group>
                 </sheet>
