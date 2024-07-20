@@ -7,13 +7,20 @@ from datetime import datetime
 
 from dateutil.parser import parse
 
-
 base_url = "https://beds24.com/api/v2"
 
 
 class HotelReservation(models.Model):
     _inherit = "hotel.reservation"
     _description = "Inheriting Hotel reservation to add additional fields"
+
+    beds24_hls_config_id = fields.Many2one('hotel_reservation_beds24', string="Beds24 HLS Config")
+    name = fields.Char(string='Reservation ID')
+    start_date = fields.Date(string='Start Date')
+    end_date = fields.Date(string='End Date')
+    status = fields.Selection([('confirmed', "Confirmed"), ('request', "Requested"),
+                               ('new', "New"), ('cancelled', "Cancelled"),
+                               ('black', "Black"), ('inquiry', "Inquiry")], string='Status')
 
     beds24_booking_id = fields.Char(string="Beds24 Booking ID")
 
@@ -43,10 +50,10 @@ class HotelReservation(models.Model):
                 for room in line_id.reserve:
                     if room.room_reservation_line_ids:
                         for reserv in room.room_reservation_line_ids.search(
-                            [
-                                ("status", "in", ("confirm", "done")),
-                                ("room_id", "=", room.id),
-                            ]
+                                [
+                                    ("status", "in", ("confirm", "done")),
+                                    ("room_id", "=", room.id),
+                                ]
                         ):
                             check_in = reserv.check_in
                             check_out = reserv.check_out
@@ -55,8 +62,8 @@ class HotelReservation(models.Model):
                             if check_in <= reserv_checkout <= check_out:
                                 room_bool = True
                             if (
-                                reserv_checkin <= check_in
-                                and reserv_checkout >= check_out
+                                    reserv_checkin <= check_in
+                                    and reserv_checkout >= check_out
                             ):
                                 room_bool = True
                             r_checkin = (reservation.checkin).date()
@@ -116,7 +123,7 @@ class HotelReservation(models.Model):
                     reservation_line_obj.create(vals)
         return True
 
-    
+
 class Beds24Booking(models.Model):
     _name = "beds24.booking"
     _description = "Handle bookings from beds24"
@@ -124,7 +131,7 @@ class Beds24Booking(models.Model):
     name = fields.Char(string="Booking ID", required=True)
     first_name = fields.Char(string="First Name", required=True)
     last_name = fields.Char(string="Last Name", required=True)
-    email = fields.Char(string="Email")
+    email = fields.Char(string="Email",required=True)
     num_adult = fields.Integer(string="Adults", required=True)
     num_children = fields.Integer(string="Children", required=True)
     booking_date = fields.Char(string="Booking Date", required=True)
@@ -147,6 +154,7 @@ class Beds24Booking(models.Model):
         hotel_room_reservation_line_obj = self.env['hotel.room.reservation.line']
         hotel_reservation_line_obj = self.env['hotel_reservation.line']
         hotel_reservation_obj = self.env['hotel.reservation']
+        hotel_room_type = self.env['hotel.room.type']
 
         if self.status == "cancelled":
             raise exceptions.ValidationError(_(f'Booking ID ({self.name}) is already cancelled.'))
@@ -189,12 +197,17 @@ class Beds24Booking(models.Model):
                 guest['property_account_payable_id'] = property_account_payable_id
 
             # Fetch hotel.room object based on room_id (assuming room_id is a unique identifier)
-            # Find an available room based on propertiesID
+            # Find an available room based on room_id
+            room_categ = hotel_room_type.search([
+                ('room_id', '=', self.room_id),
+            ], limit=1)
+            print('br',room_categ[0])
+
             available_rooms = hotel_room_obj.search([
-                ('beds24_porpertiesID', '=', self.property_id),
+                ('room_categ_id', '=', room_categ[0].id),
                 ('status', '=', 'available'),
             ], limit=1)
-            print(available_rooms)
+            print('a',available_rooms[0].room_categ_id)
 
             if not available_rooms:
                 raise exceptions.ValidationError(_("No available rooms for the selected dates."))
@@ -239,7 +252,7 @@ class Beds24Booking(models.Model):
             hotel_reservation_line_obj.create(reservation_line_vals)
 
             # Update Beds24 availability
-            url = base_url + f"/inventory/rooms/calendar?startDate={self.arrival_date}&endDate={self.arrival_date}&roomId={available_room.beds24_room_id}&includeNumAvail=true"
+            url = base_url + f"/inventory/rooms/calendar?startDate={self.arrival_date}&endDate={self.arrival_date}&roomId={room_categ[0].room_id}&includeNumAvail=true"
             auth_token = self.env['ir.config_parameter'].get_param("beds24_token")
             headers = {'accept': 'application/json', "token": auth_token}
 
@@ -251,7 +264,7 @@ class Beds24Booking(models.Model):
                 if num_avail > 0:
                     url = base_url + "/inventory/rooms/calendar"
                     data = [{
-                        "roomId": available_room.beds24_room_id,
+                        "roomId": room_categ[0].room_id,
                         "calendar": [{
                             "from": str(self.arrival_date),
                             "to": str(self.arrival_date),
@@ -311,6 +324,7 @@ class Beds24Booking(models.Model):
                         "room_id": booking.get('roomId', ''),
                         "property_id": booking.get('propertyId', ''),
                         "status": booking['status'],
+                        "email": booking.get('email', '')
                     })
                 else:
                     existing_booking_ids = self.search([('name', '=', f"B24/{booking['id']}")]).ids
@@ -330,9 +344,9 @@ class Beds24Booking(models.Model):
 
             refresh_token = self.env['ir.config_parameter'].get_param("beds24_refresh_token")
 
-
             if not refresh_token:
-                raise exceptions.UserError(_("Refresh Token doesn't exist. Please configure the Beds24 Refresh Token by Authorize."))
+                raise exceptions.UserError(
+                    _("Refresh Token doesn't exist. Please configure the Beds24 Refresh Token by Authorize."))
 
             url = 'https://beds24.com/api/v2/authentication/token'
             headers = {
@@ -369,12 +383,11 @@ class Beds24Booking(models.Model):
         }
 
 
-
 class HotelRoom(models.Model):
     _inherit = "hotel.room"
     _description = "Inheriting Hotel Room to add additional fields"
 
-    beds24_room_id = fields.Char(string="Beds24 Room ID", unique=True)
+
 
 
 class Beds24Room(models.Model):
@@ -385,75 +398,12 @@ class Beds24Room(models.Model):
     property_id = fields.Char(string="Property ID", required=True)
     qty = fields.Integer(string="Qty")
     max_people = fields.Integer(string="Max People")
-    max_adult =  fields.Integer(string="Max Adult")
-    max_children =  fields.Integer(string="Max Children")
-
-    def get_beds24_rooms(self):
-        
-        auth_token = self.env['ir.config_parameter'].get_param("beds24_token")
-
-        if not auth_token:
-            raise exceptions.UserError(_("Token doesn't exist. Please configure the Beds24 token by Authorize."))
-
-        property_id = "236917" # Property ID for Testing
-
-        url = f'https://beds24.com/api/v2/properties?id={property_id}&includeAllRooms=true'
-        headers = {
-            'accept': 'application/json',
-            'token': auth_token
-        }
-
-        response = requests.get(url, headers=headers)
-
-        hotel_room_obj = self.env['hotel.room']
-
-        if response.status_code == 200:
-
-            data = response.json()
-            print(data)
-
-            rooms = data['data'][0]['roomTypes']
-
-            for room in rooms:
-                existing_room = self.search([('room_id', '=', f"{room['id']}")]).exists()
-                if not existing_room:
-                    new_room = self.create({
-                        "name": f"{room['name']}",
-                        "room_id": room['id'],
-                        "property_id": room['propertyId'],
-                        "qty": room['qty'],
-                        "max_people": room['maxPeople'],
-                        "max_adult": room['maxAdult'],
-                        "max_children": room['maxChildren'],
-                    })
-                
-
-                    
-                else:
-                    existing_room_ids = self.search([('room_id', '=', f"{room['id']}")]).ids
-                    self.browse(existing_room_ids).write({
-                        "qty": room.get('qty', 0),
-                        "max_people": room.get('maxPeople', 0),
-                        "max_adult": room.get('maxAdult', 0),
-                        "max_children": room.get('maxChildren', 0),
-                    })
-
-                hotel_exist = hotel_room_obj.search([('name', '=', room['name'])]).exists()
-
-                if hotel_exist:
-
-                        existing_room_ids = hotel_room_obj.search([('name', '=', room['name'])]).ids
-
-                        hotel_room_obj.browse(existing_room_ids).write({
-                            'beds24_room_id': room['id']
-                        })
-
-                else:
-
-                    return exceptions.ValidationError(_(f"{room['name']} doesn't exist"))
+    max_adult = fields.Integer(string="Max Adult")
+    max_children = fields.Integer(string="Max Children")
 
 
- 
+
+
 class Beds24Property(models.Model):
     _name = "beds24_property"
     _description = "Handle properties on Beds24"
@@ -461,5 +411,5 @@ class Beds24Property(models.Model):
     name = fields.Char()
 
     @api.model
-    def get_properties(self):        
+    def get_properties(self):
         url = base_url + "/properties"
