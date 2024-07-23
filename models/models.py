@@ -381,6 +381,9 @@ class Beds24Booking(models.Model):
             'target': 'current',
             'type': 'ir.actions.act_window',
         }
+    @api.model
+    def fetch_bookings(self):
+        self.get_beds24_bookings()
 
 
 class HotelRoom(models.Model):
@@ -401,6 +404,69 @@ class Beds24Room(models.Model):
     max_adult = fields.Integer(string="Max Adult")
     max_children = fields.Integer(string="Max Children")
 
+    def get_beds24_rooms(self):
+
+        auth_token = self.env['ir.config_parameter'].get_param("beds24_token")
+
+        if not auth_token:
+            raise exceptions.UserError(_("Token doesn't exist. Please configure the Beds24 token by Authorize."))
+
+        property_id = "238623"  # Property ID for Testing
+
+        url = f'https://beds24.com/api/v2/properties?id={property_id}&includeAllRooms=true'
+        headers = {
+            'accept': 'application/json',
+            'token': auth_token
+        }
+
+        response = requests.get(url, headers=headers)
+
+        hotel_room_obj = self.env['hotel.room']
+
+        if response.status_code == 200:
+
+            data = response.json()
+            print('a',data)
+
+            rooms = data['data'][0]['roomTypes']
+
+            for room in rooms:
+                existing_room = self.search([('room_id', '=', f"{room['id']}")]).exists()
+                if not existing_room:
+                    new_room = self.create({
+                        "name": f"{room['name']}",
+                        "room_id": room['id'],
+                        "property_id": room['propertyId'],
+                        "qty": room['qty'],
+                        "max_people": room['maxPeople'],
+                        "max_adult": room['maxAdult'],
+                        "max_children": room['maxChildren'],
+                    })
+
+
+
+                else:
+                    existing_room_ids = self.search([('room_id', '=', f"{room['id']}")]).ids
+                    self.browse(existing_room_ids).write({
+                        "qty": room.get('qty', 0),
+                        "max_people": room.get('maxPeople', 0),
+                        "max_adult": room.get('maxAdult', 0),
+                        "max_children": room.get('maxChildren', 0),
+                    })
+
+                hotel_exist = hotel_room_obj.search([('name', '=', room['name'])]).exists()
+
+                if hotel_exist:
+
+                    existing_room_ids = hotel_room_obj.search([('name', '=', room['name'])]).ids
+
+                    hotel_room_obj.browse(existing_room_ids).write({
+                        'beds24_room_id': room['id']
+                    })
+
+                else:
+
+                    return exceptions.ValidationError(_(f"{room['name']} doesn't exist"))
 
 
 

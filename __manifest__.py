@@ -14,10 +14,12 @@
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',
+        'data/cron.xml',
         'views/views.xml',
         'views/actions.xml',
         'views/menu.xml',
-        'wizards/authorize_wizard_view.xml'
+        'wizards/authorize_wizard_view.xml',
+        'wizards/beds24hls_wizard_view.xml',
     ],
     'application': True,
     'installable': True,
