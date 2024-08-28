@@ -1,1 +1,1 @@
-from . import authorize_wizard
+from . import authorize_wizard, beds24hls_wizard

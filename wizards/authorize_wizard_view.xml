@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <odoo>
-
     <record id="authorize_wizard_view" model="ir.ui.view">
         <field name="name">Authorize Beds24</field>
         <field name="model">authorize.wizard</field>
@@ -26,6 +24,5 @@
         <field name="target">new</field>
     </record>
 
-    <menuitem id="authorize_main" name="Authorize" action="action_authorize_beds24" parent="beds_24" sequence="0" />
-
+    <menuitem id="menu_authorize_beds24" name="Authorize" action="action_authorize_beds24" parent="beds_24" sequence="0"/>
 </odoo>

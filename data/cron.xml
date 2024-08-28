@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <data noupdate="1">
+        <record id="ir_cron_fetch_bookings" model="ir.cron">
+            <field name="name">Fetch Beds24 Bookings</field>
+            <field name="model_id" ref="model_beds24_booking"/>
+            <field name="state">code</field>
+            <field name="code">model.fetch_bookings()</field>
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
+            <field name="numbercall">-1</field>
+            <field name="doall" eval="False"/>
+        </record>
+    </data>
+</odoo>

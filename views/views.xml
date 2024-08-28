@@ -13,6 +13,7 @@
                 <field name="name" />
                 <field name="first_name" />
                 <field name="last_name" />
+                <field name="email" readonly="1"/>
                 <field name="num_adult" />
                 <field name="num_children" />
                 <field name="booking_date" />
@@ -20,6 +21,7 @@
                 <field name="departure_date" />
                 <field name="room_id" />
                 <field name="status" />
+                <field name="property_id" />
             </tree>
         </field>
     </record>
@@ -34,19 +36,22 @@
                 <sheet>
                     <header>
                         <button name="create_hotel_reservation" string="Create Reservation" type="object" class="btn btn-primary" />
+                        <button name="cancel_reservation" string="Cancel Reservation" type="object" class="btn btn-primary" />
                     </header>
 
                     <group>
                         <field name="name" readonly="1" />
                         <field name="first_name" readonly="1" />
                         <field name="last_name" readonly="1" />
+                        <field name="email" readonly="1"/>
                         <field name="num_adult" readonly="1" />
                         <field name="num_children" readonly="1" />
                         <field name="booking_date" readonly="1" />
                         <field name="arrival_date" readonly="1" />
                         <field name="departure_date" readonly="1" />
                         <field name="room_id" readonly="1" />
-                        <field name="status" readonly="1" />
+                        <field name="property_id" readonly="1" />
+                        <field name="status" />
                     </group>
                 </sheet>
 
@@ -119,18 +124,6 @@
     </record>
 
 
-    <record model="ir.ui.view" id="view_hotel_room_form_inherit">
-        <field name="name">view.hotel.room.form.inherit</field>
-        <field name="model">hotel.room</field>
-        <field name="inherit_id" ref="hotel.view_hotel_room_form"/>
-        <field name="arch" type="xml">
-            <data>
-                <field name="room_categ_id" position="after">
-                    <field name="beds24_room_id" readonly="1"/>
-                </field>
-            </data>
-        </field>
-    </record>
 
 
 
