@@ -123,6 +123,30 @@ class HotelReservation(models.Model):
                     reservation_line_obj.create(vals)
         return True
 
+    def cancel_reservation(self):
+        """
+        This method cancel record set for hotel room reservation line
+        ------------------------------------------------------------------
+        @param self: The object pointer
+        @return: cancel record set for hotel room reservation line.
+        """
+        room_res_line_obj = self.env["hotel.room.reservation.line"]
+        hotel_res_line_obj = self.env["hotel_reservation.line"]
+        self.state = "cancel"
+        room_reservation_line = room_res_line_obj.search(
+            [("reservation_id", "in", self.ids)]
+        )
+        room_reservation_line.write({"state": "unassigned"})
+        room_reservation_line.unlink()
+        reservation_lines = hotel_res_line_obj.search(
+            [("line_id", "in", self.ids)]
+        )
+        for reservation_line in reservation_lines:
+            reservation_line.reserve.write(
+                {"isroom": True, "status": "available"}
+            )
+        return True
+
 
 class Beds24Booking(models.Model):
     _name = "beds24.booking"
@@ -144,9 +168,38 @@ class Beds24Booking(models.Model):
             ('request', "Request"),
             ('confirmed', "Confirmed"),
             ('black', "Black"),
+            ('cancelled', "Cancelled"),
         ]
     )
     property_id = fields.Char(string="Property ID")
+
+    def cancel_reservation(self):
+        """
+        This method is called when the Cancel Reservation button is clicked.
+        It updates the booking status to 'cancelled' and performs the necessary
+        operations to cancel the reservation.
+        """
+        # if self.status == 'cancelled':
+        #     raise exceptions.ValidationError(_('This booking is already cancelled.'))
+
+        # Call the cancel_reservation method from the hotel reservation model
+        hotel_reservation_obj = self.env['hotel.reservation']
+        hotel_reservation = hotel_reservation_obj.search([('beds24_booking_id', '=', self.name)],limit=1)
+        if hotel_reservation:
+            hotel_reservation.cancel_reservation()
+
+        # Update the status of the Beds24 booking
+        self.write({'status': 'cancelled'})
+
+        # Optionally, you can return a message or action to notify the user
+        return {
+            'name': 'Beds24 Booking List',
+            'view_mode': 'tree',
+            'res_model': 'beds24.booking',
+            'view_id': self.env.ref('hotel_reservation_beds24.beds24_bookings_list_view').id,
+            'target': 'current',
+            'type': 'ir.actions.act_window',
+        }
 
     def create_hotel_reservation(self):
         hotel_room_obj = self.env['hotel.room']
@@ -209,10 +262,16 @@ class Beds24Booking(models.Model):
             ], limit=1)
             print('a',available_rooms[0].room_categ_id)
 
+
             if not available_rooms:
                 raise exceptions.ValidationError(_("No available rooms for the selected dates."))
 
             available_room = available_rooms[0]  # Select the first available room
+            total_rooms = hotel_room_obj.search([
+                ('room_categ_id', '=', room_categ[0].id),
+                ('status', '=', 'available'),
+            ])
+            print('Total Room left ',len(total_rooms)-len(available_room))
             print(available_room)
 
             # Create reservation
@@ -295,7 +354,7 @@ class Beds24Booking(models.Model):
         if not auth_token:
             raise exceptions.UserError(_("Token doesn't exist. Please configure the Beds24 token by Authorize."))
 
-        url = 'https://beds24.com/api/v2/bookings?status=confirmed'
+        url = 'https://beds24.com/api/v2/bookings?status=confirmed&status=cancelled'
         headers = {
             'accept': 'application/json',
             'token': auth_token
@@ -306,12 +365,15 @@ class Beds24Booking(models.Model):
         if response.status_code == 200:
             data = response.json()
             bookings = data["data"]
-            print(bookings)
+            print("Bookings fetched:", bookings)
 
             for booking in bookings:
-                print("BOOKING", booking)
-                existing_booking = self.search([('name', '=', f"{booking['id']}")]).exists()
+                print("Processing booking:", booking)
+                existing_booking = self.search([('name', '=', f"{booking['id']}")])
+                booking_status = booking.get('status', '')
+
                 if not existing_booking:
+                    print("Creating new booking for ID:", booking['id'])
                     self.create({
                         "name": f"{booking['id']}",
                         "first_name": booking.get('firstName', ''),
@@ -323,12 +385,20 @@ class Beds24Booking(models.Model):
                         "departure_date": fields.Date.from_string(booking.get('departure', '')),
                         "room_id": booking.get('roomId', ''),
                         "property_id": booking.get('propertyId', ''),
-                        "status": booking['status'],
+                        "status": booking_status,
                         "email": booking.get('email', '')
                     })
                 else:
-                    existing_booking_ids = self.search([('name', '=', f"B24/{booking['id']}")]).ids
-                    self.browse(existing_booking_ids).write({
+                    print(f"Updating existing booking {existing_booking.name}")
+                    print("Old status:", existing_booking.status)
+                    print("New status:", booking_status)
+                    if booking_status == 'cancelled':
+                        existing_booking.cancel_reservation()
+                        print("Success cancel Reservation")
+                    elif booking_status == 'available':
+                        existing_booking.create_hotel_reservation()
+                        print("Success Booking Reservation")
+                    existing_booking.write({
                         "first_name": booking.get('firstName', ''),
                         "last_name": booking.get('lastName', ''),
                         "num_adult": booking.get('numAdult', 0),
@@ -337,11 +407,13 @@ class Beds24Booking(models.Model):
                         "arrival_date": fields.Date.from_string(booking.get('arrival', '')),
                         "departure_date": fields.Date.from_string(booking.get('departure', '')),
                         "property_id": booking.get('propertyId', ''),
+                        "status": booking_status,
                         "room_id": booking.get('roomId', ''),
                     })
+                    print(f"Booking {existing_booking.name} updated. New status: {existing_booking.status}")
+
 
         elif response.status_code == 401:
-
             refresh_token = self.env['ir.config_parameter'].get_param("beds24_refresh_token")
 
             if not refresh_token:
@@ -357,19 +429,12 @@ class Beds24Booking(models.Model):
             response = requests.get(url, headers=headers)
 
             if response.status_code == 200:
-
                 response = response.json()
-
                 token = response['token']
-
                 self.env['ir.config_parameter'].set_param('beds24_token', token)
-
                 return self.get_beds24_bookings()
-
             else:
-
                 raise exceptions.AccessError(_(f"Request failed with status code {response.status_code}"))
-
         else:
             raise exceptions.AccessError(_(f"Request failed with status code {response.status_code}"))
 

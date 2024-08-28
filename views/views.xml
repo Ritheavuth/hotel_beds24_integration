@@ -36,6 +36,7 @@
                 <sheet>
                     <header>
                         <button name="create_hotel_reservation" string="Create Reservation" type="object" class="btn btn-primary" />
+                        <button name="cancel_reservation" string="Cancel Reservation" type="object" class="btn btn-primary" />
                     </header>
 
                     <group>
@@ -50,7 +51,7 @@
                         <field name="departure_date" readonly="1" />
                         <field name="room_id" readonly="1" />
                         <field name="property_id" readonly="1" />
-                        <field name="status" readonly="1" />
+                        <field name="status" />
                     </group>
                 </sheet>
 
