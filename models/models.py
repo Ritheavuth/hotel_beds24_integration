@@ -553,15 +553,6 @@ class Beds24Booking(models.Model):
             else:
                 raise exceptions.AccessError(_(f"Request failed with status code {response.status_code}"))
 
-            return {
-                'name': 'Hotel Reservation',
-                'type': 'ir.actions.act_window',
-                'res_model': 'hotel.reservation',
-                'res_id': reservation_id.id,
-                'view_mode': 'form',
-                'target': 'current',
-            }
-
     @api.model
     def get_beds24_bookings(self):
         auth_token = self.env['ir.config_parameter'].get_param("beds24_token")
@@ -646,21 +637,6 @@ class Beds24Booking(models.Model):
         else:
             raise exceptions.AccessError(_(f"Request failed with status code {response.status_code}"))
 
-        domain = [('status', '=', 'confirmed')]
-
-        return {
-            'name': 'Beds24 Booking List',
-            'view_mode': 'tree,form',
-            'views': [
-                (self.env.ref('hotel_reservation_beds24.beds24_bookings_list_view').id, 'tree'),
-                (self.env.ref('hotel_reservation_beds24.beds24_bookings_form_view').id, 'form'),
-            ],
-            'res_model': 'beds24.booking',
-            'domain': domain,
-            'type': 'ir.actions.act_window',
-            'target': 'current',
-        }
-    
     @api.model
     def fetch_bookings(self):
         self.get_beds24_bookings()
