@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="set_property_id_wizard_view" model="ir.ui.view">
+        <field name="name">Set Property ID (Beds24)</field>
+        <field name="model">set.property.id.wizard</field>
+        <field name="arch" type="xml">
+            <form>  
+                <p>Check properties <a target="_blank" href="https://beds24.com/control3.php?pagetype=properties">here</a>
+                </p>
+                <group>
+                    <field name="property_id" string="Property ID"/>
+                    <footer>
+                        <button name="set_property_id" string="Save" type="object" class="oe_highlight"/>
+                        <button string="Cancel" class="oe_link" special="cancel"/>
+                    </footer>
+                </group>
+            </form>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="action_set_property_id_beds24">
+        <field name="name">Set Property ID</field>
+        <field name="res_model">set.property.id.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_property_id_beds24" name="Set Property ID" action="action_set_property_id_beds24" parent="beds24_configs" sequence="1"/>
+</odoo>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<odoo>
+
+    <record id="action_beds24_bookings_list" model="ir.actions.act_window">
+
+        <field name="name">Beds24 Booking List</field>
+        <field name="res_model">beds24.booking</field>
+        <field name="view_mode">tree,form</field>
+
+    </record>
+
+    <record id="action_beds24_get_bookings" model="ir.actions.server">
+        <field name="name">Get Bookings Beds24</field>
+        <field name="model_id" ref="model_beds24_booking"/>
+        <field name="state">code</field>
+        <field name="code">model.get_beds24_bookings()</field>
+    </record>
+
+    <record id="action_beds24_room_types_list" model="ir.actions.act_window">
+        <field name="name">Beds24 Room Types</field>
+        <field name="res_model">beds24.room.type</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="action_beds24_get_room_types" model="ir.actions.server">
+        <field name="name">Get All Room Types From Beds24</field>
+        <field name="model_id" ref="model_beds24_room_type"/>
+        <field name="state">code</field>
+        <field name="code">model.get_all_room_types_from_beds24()</field>
+    </record>
+
+    <record id="action_beds24_update_room_types" model="ir.actions.server">
+        <field name="name">Update Room Units Beds24</field>
+        <field name="model_id" ref="model_beds24_room_type"/>
+        <field name="state">code</field>
+        <field name="code">model.update_room_units()</field>
+    </record>
+
+</odoo>

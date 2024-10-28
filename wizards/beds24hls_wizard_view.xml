@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <!-- Form view for the Beds24 HLS Wizard -->
+        <record id="view_beds24_hls_wizard_form" model="ir.ui.view">
+            <field name="name">beds24.hls.wizard.form</field>
+            <field name="model">beds24_hls.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Beds24 HLS Wizard">
+                    <sheet>
+                        <group>
+                            <field name="start_date"/>
+                            <field name="end_date"/>
+                            <field name="status"/>
+                        </group>
+                    </sheet>
+                    <footer>
+                        <button name="beds24_get_bookings" type="object" string="Get Bookings" class="btn-primary"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <!-- Tree view for the Beds24 HLS Wizard Reservation -->
+        <record id="view_beds24_hls_wizard_reservation_tree" model="ir.ui.view">
+            <field name="name">beds24.hls.wizard.reservation.tree</field>
+            <field name="model">beds24_hls.wizard.reservation</field>
+            <field name="arch" type="xml">
+                <tree string="Reservations">
+                    <field name="name"/>
+                    <field name="start_date"/>
+                    <field name="end_date"/>
+                    <field name="status"/>
+                </tree>
+            </field>
+        </record>
+
+        <!-- Form view for the Beds24 HLS Wizard Reservation -->
+        <record id="view_beds24_hls_wizard_reservation_form" model="ir.ui.view">
+            <field name="name">beds24.hls.wizard.reservation.form</field>
+            <field name="model">beds24_hls.wizard.reservation</field>
+            <field name="arch" type="xml">
+                <form string="Reservation">
+                    <group>
+                        <field name="name"/>
+                        <field name="start_date"/>
+                        <field name="end_date"/>
+                        <field name="status"/>
+                    </group>
+                </form>
+            </field>
+        </record>
+
+        <!-- Action to open the wizard -->
+        <record id="action_beds24_hls_wizard" model="ir.actions.act_window">
+            <field name="name">Beds24 HLS Wizard</field>
+            <field name="res_model">beds24_hls.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <!-- Menu item to access the wizard -->
+        <menuitem id="menu_beds24hls_wizard" name="Beds24 Respond" action="action_beds24_hls_wizard" parent="beds24_configs" sequence="2"/>
+    </data>
+</odoo>

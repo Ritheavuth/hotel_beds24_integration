@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<odoo>
+
+    <!-- Start Booking Views -->
+
+    <record id="beds24_bookings_list_view" model="ir.ui.view">
+
+        <field name="name">beds24.bookings.list.view</field>
+        <field name="model">beds24.booking</field>
+        <field name="arch" type="xml">
+            <tree decoration-danger="status == 'cancelled'">
+                <field name="name" />
+                <field name="first_name" />
+                <field name="last_name" />
+                <field name="email" readonly="1"/>
+                <field name="num_adult" />
+                <field name="num_children" />
+                <field name="booking_date" />
+                <field name="arrival_date" />
+                <field name="departure_date" />
+                <field name="room_id" />
+                <field name="status" />
+                <field name="property_id" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="beds24_bookings_form_view" model="ir.ui.view">
+        <field name="name">beds24.bookings.form.view</field>
+        <field name="model">beds24.booking</field>
+        <field name="arch" type="xml">
+            <form string="Booking Details">
+                <sheet>
+                    <div class="oe_button_box">
+                        <!-- Button to create a new reservation -->
+                        <button name="create_hotel_reservation" string="Create Reservation" type="object" class="oe_stat_button" icon="fa-calendar-check-o" attrs="{'invisible': [('created_hotel_reservation', '=', True)]}"/>
+
+                        <!-- Button to open an existing reservation if it exists -->
+                        <button name="open_hotel_reservation" string="Open Reservation" type="object" class="oe_stat_button" icon="fa-calendar" attrs="{'invisible': [('created_hotel_reservation', '=', False)]}"/>
+
+                        <!-- Button to cancel the reservation if the reservation status isn't 'cancelled' -->
+                        <button name="cancel_reservation" string="Cancel Reservation" type="object" class="oe_stat_button" icon="fa-ban" attrs="{'invisible': [('status', '=', 'cancelled')]}"/>
+                    </div>
+
+                    <group>
+                        <field name="created_hotel_reservation"/>
+                    </group>
+
+                    <group string="Guest Information" colspan="4">
+                        <group>
+                            <field name="first_name" readonly="1" string="First Name" />
+                            <field name="last_name" readonly="1" string="Last Name" />
+                            <field name="email" readonly="1" string="Email" />
+                        </group>
+                    </group>
+
+                    <group string="Booking Details" colspan="4">
+                        <group>
+                            <field name="name" readonly="1" string="Booking Reference" />
+                            <field name="booking_date" readonly="1" string="Booking Date" />
+                            <field name="status" string="Status" />
+                        </group>
+                        <group>
+                            <field name="num_adult" readonly="1" string="Number of Adults" />
+                            <field name="num_adult" readonly="1" string="Number of Adults" />
+                            <field name="num_children" readonly="1" string="Number of Children" />
+                        </group>
+                    </group>
+
+                    <group string="Stay Information" colspan="4">
+                        <group>
+                            <field name="arrival_date" readonly="1" string="Arrival Date" />
+                            <field name="departure_date" readonly="1" string="Departure Date" />
+                        </group>
+                        <group>
+                            <field name="room_id" readonly="1" string="Room" />
+                            <field name="property_id" readonly="1" string="Property" />
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+
+    <!-- End Booking Views -->
+
+    <!-- Start Room Type Views -->
+
+    <record id="beds24_room_list_view" model="ir.ui.view">
+
+        <field name="name">beds24.room.list.view</field>
+        <field name="model">beds24.room.type</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="room_id" string="ID" />
+                <field name="name" />
+                <field name="property_id" />
+                <field name="qty" />
+                <field name="max_people" />
+                <field name="max_adult" />
+                <field name="max_children" />
+                <field name="size" />
+            </tree>
+        </field>
+    </record>
+    <record id="beds24_rooms_form_view" model="ir.ui.view">
+        <field name="name">beds24.rooms.form.view</field>
+        <field name="model">beds24.room.type</field>
+        <field name="arch" type="xml">
+            <form string="Room Details">
+                <sheet>
+                    <div class="oe_button_box">
+                        <button name="get_room_unit" class="oe_stat_button" type="object" string="Get Rooms" icon="fa-list" />
+                        <button name="sync_room_type" class="oe_stat_button" type="object" string="Update to Beds24" icon="fa-cloud-upload" />
+                    </div>
+
+                    <!-- Room Information Section -->
+                    <group string="Room Information" colspan="4">
+                        <group>
+                            <field name="room_id" string="Room ID" />
+                            <field name="name" string="Room Name" />
+                        </group>
+                        <group>
+                            <field name="property_id" string="Property ID" />
+                            <field name="qty" string="Quantity" />
+                        </group>
+                    </group>
+
+                    <!-- Capacity Section -->
+                    <group string="Capacity" colspan="4">
+                        <group>
+                            <field name="max_people" string="Max People" />
+                            <field name="max_adult" string="Max Adults" />
+                        </group>
+                        <group>
+                            <field name="max_children" string="Max Children" />
+                            <field name="size" string="Room Size (sqm)" />
+                        </group>
+                    </group>
+
+                    <!-- Additional Information Section -->
+                    <group string="Additional Information" colspan="4">
+                        <notebook>
+                            <!-- First Tab for Amenities -->
+                            <page string="Amenities">
+                                <field name="amenities" />
+                            </page>
+
+                            <!-- Second Tab for Rooms -->
+                            <page string="Rooms">
+                                <field name="room_ids" />
+                            </page>
+                        </notebook>
+                    </group>
+
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- End Room Type Views -->
+
+    <!-- Inherited -->
+
+    <!-- Inherited Views -->
+
+    <record model="ir.ui.view" id="view_hotel_reservation_form_inherit">
+        <field name="name">hotel.reservation.form.inherit</field>
+        <field name="model">hotel.reservation</field>
+        <field name="inherit_id" ref="hotel_reservation.view_hotel_reservation_form"/>
+        <field name="arch" type="xml">
+            <data>
+                <field name="warehouse_id" position="after">
+                    <field name="beds24_booking_id" attrs="{'readonly':[('state', '==', 'cancel')]}"/>
+                </field>
+            </data>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_hotel_reservation_tree_inherit">
+        <field name="name">hotel.reservation.tree.inherit</field>
+        <field name="model">hotel.reservation</field>
+        <field name="inherit_id" ref="hotel_reservation.view_hotel_reservation_tree"/>
+        <field name="arch" type="xml">
+            <data>
+                <field name="reservation_no" position="after">
+                    <field name="beds24_booking_id" attrs="{'readonly':[('state', '==', 'cancel')]}"/>
+                </field>
+            </data>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_hotel_room_type_form_inherit">
+        <field name="name">hotel.room.type.form.inherit</field>
+        <field name="model">hotel.room.type</field>
+        <field name="inherit_id" ref="hotel.view_hotel_room_type_form"/>
+        <field name="arch" type="xml">
+            <data>
+                <field name="name" position="after">
+                    <field name="beds24_room_type_id" />
+                </field>
+            </data>
+        </field>
+    </record>
+
+
+    <!-- End Inherited Views -->
+
+    <!-- Beds24 Room Config -->
+
+
+
+
+    <!-- End Beds24 Room Config -->
+
+</odoo>

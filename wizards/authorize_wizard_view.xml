@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="authorize_wizard_view" model="ir.ui.view">
+        <field name="name">Authorize Beds24</field>
+        <field name="model">authorize.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <p>Invite Codes can be generated here <a href="https://beds24.com/control3.php?pagetype=apiv2">https://beds24.com/control3.php?pagetype=apiv2</a></p>
+                <group>
+                    <field name="invite_code" string="Invite Code"/>
+                    <footer>
+                        <button name="authorize_beds24" string="Authorize" type="object" class="oe_highlight"/>
+                        <button string="Cancel" class="oe_link" special="cancel"/>
+                    </footer>
+                </group>
+            </form>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="action_authorize_beds24">
+        <field name="name">Authorize Beds24</field>
+        <field name="res_model">authorize.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_authorize_beds24" name="Authorize" action="action_authorize_beds24" parent="beds24_configs" sequence="0"/>
+</odoo>
