@@ -12,6 +12,7 @@
     <menuitem id="rooms_all_rooms" name="All Room Types" action="action_beds24_room_types_list" parent="rooms_main" />
     <menuitem id="rooms_get_rooms" name="Get Room Types" action="action_beds24_get_room_types" parent="rooms_main" />
     <menuitem id="rooms_update_rooms" name="Update Room Types" action="action_beds24_update_room_types" parent="rooms_main" />
+    <menuitem id="rooms_sync_room_types" name="Sync All Room Types" action="action_sync_room_types" parent="rooms_main" />
 
     <menuitem id="beds24_configs" name="Config" parent="beds_24" sequence="3"/>
 

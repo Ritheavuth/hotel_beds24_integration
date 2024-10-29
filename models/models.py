@@ -9,6 +9,33 @@ from dateutil.parser import parse
 
 base_url = "https://beds24.com/api/v2"
 
+class Beds24Utils:
+    @staticmethod
+    def refresh_token(env):
+        refresh_token = env['ir.config_parameter'].get_param("beds24_refresh_token")
+        if not refresh_token:
+            raise exceptions.UserError(
+                _("Refresh Token doesn't exist. Please configure the Beds24 Refresh Token by Authorize.")
+            )
+
+        url = 'https://beds24.com/api/v2/authentication/token'
+        headers = {
+            'accept': 'application/json',
+            'refreshToken': refresh_token
+        }
+
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 200:
+            response = response.json()
+            token = response['token']
+            env['ir.config_parameter'].set_param('beds24_token', token)
+        else:
+            raise exceptions.AccessError(
+                _(f"Request failed with status code {response.status_code}")
+            )
+
+
 class Beds24Property(models.Model):
     _name = "beds24_property"
     _description = "Handle properties on Beds24"
@@ -45,7 +72,6 @@ class Beds24RoomType(models.Model):
         "hotel.room",
         string="Available Rooms",
     )
-
 
     def get_room_types(self):
         try:
@@ -92,8 +118,10 @@ class Beds24RoomType(models.Model):
                             "max_adult": room.get('maxAdult', existing_room.max_adult),
                             "max_children": room.get('maxChildren', existing_room.max_children),
                         })
+            elif response.status_code == 401:
+                Beds24Utils.refresh_token(self.env)
+                return self.get_room_types()
                 
-                self.refresh()
 
         except exceptions.ValidationError as error:
             raise exceptions.ValidationError(str(error))
@@ -102,15 +130,13 @@ class Beds24RoomType(models.Model):
 
 
     def update_room_units(self):
-        print("update_room_units")
         # Iterate over all Beds24RoomType records
+        message = ""
         for room_type in self.search([]):
             # Find the corresponding HotelRoomType based on Beds24RoomType
             hotel_room_type = self.env['hotel.room.type'].search([
                 ('beds24_room_type_id', '=', room_type.id)  # Assuming this relationship is correct
             ], limit=1)
-
-            print("hotel_room_type",hotel_room_type)
 
             if hotel_room_type:
                 # Fetch available rooms for the hotel room type
@@ -122,26 +148,27 @@ class Beds24RoomType(models.Model):
                 room_type.room_ids = [(6, 0, rooms.ids)]
                 room_type.qty = len(rooms)
 
+                message += f"{self.qty} rooms found for {room_type.name}\n"
+
             else:
-                print(f"No associated HotelRoomType found for Beds24RoomType with {room_type.name}")
+                message += f"No associated HotelRoomType found for Beds24RoomType with {room_type.name}\n"
+        
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Room Collection Completed',
+                'message': "All Room Type Units are updated",
+                'type': 'success',
+                'sticky': True,
+            }
+        }
 
 
     def sync_room_types(self):
 
-        result = {
-            "id": self.env['ir.config_parameter'].get_param("beds24_property_id"),
-            "roomTypes": []
-        }
+        roomTypes = []
         for room_type in self.search([]):
-            # Base values for the room
-            room_id = room_type.room_id
-
-            rooms = room_type.room_ids.id
-
-            print("Rooms", rooms)
-
-            units = []
-
             # Generate 'units' based on 'qty'
             units = [
                 {
@@ -151,22 +178,65 @@ class Beds24RoomType(models.Model):
                     "statusColor": "#00ff00",
                     "notes": ""
                 }
-                for index, room in rooms
+                for index, room in enumerate(room_type.room_ids)
             ]
 
-            # Create transformed room type with generated units
-            result['roomTypes'] += {
-                "id": room_id,
-                "qty": len(units),
-                "unallocatedUnit": {
-                    "name": "Unassigned"
-                },
-                "units": units
+            featureCodes = [
+                [amenity.code]
+                for amenity in room_type.amenities
+            ]
+
+            room_type_obj = {
+                "id": room_type.room_id,
+                "units": units,
+                "featureCodes": featureCodes
             }
 
-            # Add to final transformed data
-        
-        print("RESULT", result)
+            roomTypes.append(room_type_obj)
+
+        body = [
+            {
+                "id": self.env['ir.config_parameter'].get_param("beds24_property_id"),
+                "roomTypes": roomTypes
+            }
+        ]
+
+        url = base_url + f"/properties"
+        auth_token = self.env['ir.config_parameter'].get_param("beds24_token")
+        headers = {'accept': 'application/json', "token": auth_token}
+
+        # Use json parameter for the body
+        response = requests.post(url, headers=headers, json=body)
+
+        if response.status_code == 200:
+
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': ('Success'),
+                    'message': 'All Room Types has been updated to Beds24',
+                    'type':'success',  #types: success,warning,danger,info
+                    'sticky': True,  #True/False will display for few seconds if false
+                },
+            }
+
+        elif response.status_code == 401:
+
+            Beds24Utils.refresh_token(self.env)
+            return self.sync_room_types()
+
+        else:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': ('Error'),
+                    'message': 'Something went wrong while updating Room Types to Beds24',
+                    'type':'success',  #types: success,warning,danger,info
+                    'sticky': True,  #True/False will display for few seconds if false
+                },
+            }
 
 
     def get_room_unit(self):
@@ -175,8 +245,6 @@ class Beds24RoomType(models.Model):
         hotel_room_type = self.env['hotel.room.type'].search([
             ('beds24_room_type_id', '=', self.id)  # Assuming this relationship is correct
         ], limit=1)
-
-        print("hotel_room_type",hotel_room_type)
 
         if hotel_room_type:
             # Fetch available rooms for the hotel room type
@@ -188,15 +256,102 @@ class Beds24RoomType(models.Model):
             self.room_ids = [(6, 0, rooms.ids)]
             self.qty = len(rooms)
 
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': ('Room Collection'),
+                    'message': f'{self.qty} room(s) found',
+                    'type':'success',
+                    'sticky': True,
+                },
+            }
+
         else:
-            print(f"No associated HotelRoomType")
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': ('Room Collection'),
+                    'message': f'No Rooms Found',
+                    'type':'success',  #types: success,warning,danger,info
+                    'sticky': True,  #True/False will display for few seconds if false
+                },
+            }
 
 
     def sync_room_type(self):
 
-        for room in self.room_ids:
+        body = [
+            {
+                "id": self.env['ir.config_parameter'].get_param("beds24_property_id"),
+                "roomTypes": [
+                    {
+                        "id": self.room_id,
+                        "units": [
+                            {
+                                "id": index + 1,
+                                "name": room.name,
+                                "statusText": f"{room.status}",
+                                "statusColor": "#00ff00" if room.status == "available" else "#ff0000"
+                            }
+                            for index, room in enumerate(self.room_ids)
+                        ],
+                        "featureCodes": [
+                            [amenity.code]
+                            for amenity in self.amenities
+                        ]
+                    }
+                ],
+            }
+        ]
 
-            print(room.name)
+        url = base_url + f"/properties"
+        auth_token = self.env['ir.config_parameter'].get_param("beds24_token")
+        headers = {'accept': 'application/json', "token": auth_token}
+
+        # Use json parameter for the body
+        response = requests.post(url, headers=headers, json=body)
+
+        if response.status_code == 200:
+
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': ('Success'),
+                    'message': 'All Room Types has been updated to Beds24',
+                    'type':'success',  #types: success,warning,danger,info
+                    'sticky': True,  #True/False will display for few seconds if false
+                },
+            }
+        
+        elif response.status_code == 401:
+            Beds24Utils.refresh_token(self.env)
+            self.sync_room_types()
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': ('Error'),
+                    'message': 'Something went wrong while updating Room Types to Beds24',
+                    'type':'success',  #types: success,warning,danger,info
+                    'sticky': True,  #True/False will display for few seconds if false
+                },
+            }
+        
+        else:
+
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': ('Error'),
+                    'message': 'Something went wrong while updating Room Types to Beds24',
+                    'type':'success',  #types: success,warning,danger,info
+                    'sticky': True,  #True/False will display for few seconds if false
+                },
+            }
 
 
 class HotelRoomType(models.Model):
@@ -474,7 +629,6 @@ class Beds24Booking(models.Model):
                 ('beds24_room_type_id.room_id', '=', self.room_id),
             ], limit=1)
 
-            print(self.room_id, room_categ.beds24_room_type_id)
 
             available_rooms = hotel_room_obj.search([
                 ('room_categ_id', '=', room_categ.id),
@@ -502,8 +656,6 @@ class Beds24Booking(models.Model):
 
             reservation_id = hotel_reservation_obj.create(vals)
 
-            print("Newly Created", reservation_id)
-
             room_reservation_line_vals = {
                 'room_id': available_room.id,
                 'reservation_id': reservation_id.id,
@@ -526,6 +678,7 @@ class Beds24Booking(models.Model):
             hotel_reservation_line_obj.create(reservation_line_vals)
 
             # Update Beds24 availability
+
             url = base_url + f"/inventory/rooms/calendar?startDate={self.arrival_date}&endDate={self.arrival_date}&roomId={room_categ.beds24_room_type_id}&includeNumAvail=true"
             auth_token = self.env['ir.config_parameter'].get_param("beds24_token")
             headers = {'accept': 'application/json', "token": auth_token}
@@ -550,11 +703,18 @@ class Beds24Booking(models.Model):
                         reservation_id.confirm_reservation()
                     else:
                         raise exceptions.UserError("Something went wrong while updating Beds24 availability.")
+            elif response.status_code == 401:
+                Beds24Utils.refresh_token(self.env)
+                return self.create_hotel_reservation()
             else:
                 raise exceptions.AccessError(_(f"Request failed with status code {response.status_code}"))
 
     @api.model
     def get_beds24_bookings(self):
+
+        beds24_room_type_obj = self.env['beds24.room.type']
+
+
         auth_token = self.env['ir.config_parameter'].get_param("beds24_token")
 
         if not auth_token:
@@ -573,69 +733,54 @@ class Beds24Booking(models.Model):
             bookings = data["data"]
 
             for booking in bookings:
-                existing_booking = self.search([('name', '=', f"{booking['id']}")])
-                booking_status = booking.get('status', '')
-                if not existing_booking:
-                    self.create({
-                        "name": f"{booking['id']}",
-                        "first_name": booking.get('firstName', ''),
-                        "last_name": booking.get('lastName', ''),
-                        "num_adult": booking.get('numAdult', 0),
-                        "num_children": booking.get('numChild', 0),
-                        "booking_date": booking['bookingTime'],
-                        "arrival_date": fields.Date.from_string(booking.get('arrival', '')),
-                        "departure_date": fields.Date.from_string(booking.get('departure', '')),
-                        "room_id": booking.get('roomId', ''),
-                        "property_id": booking.get('propertyId', ''),
-                        "status": booking_status,
-                        "email": booking.get('email', ''),
-                        "created_hotel_reservation": False
-                    })
-                else:
-                    if booking_status == 'cancelled':
-                        existing_booking.cancel_reservation()
-                    elif booking_status == 'confirmed':
-                        existing_booking.create_hotel_reservation()
-                    existing_reservation = self.env['hotel.reservation'].search([('beds24_booking_id', '=', self.name)], limit=1)
-                    existing_booking.write({
-                        "first_name": booking.get('firstName', ''),
-                        "last_name": booking.get('lastName', ''),
-                        "num_adult": booking.get('numAdult', 0),
-                        "num_children": booking.get('numChild', 0),
-                        "booking_date": booking['bookingTime'],
-                        "arrival_date": fields.Date.from_string(booking.get('arrival', '')),
-                        "departure_date": fields.Date.from_string(booking.get('departure', '')),
-                        "property_id": booking.get('propertyId', ''),
-                        "status": booking_status,
-                        "room_id": booking.get('roomId', ''),
-                        "created_hotel_reservation": True if existing_reservation.beds24_booking_id else False
-                    })
-
-
+                try:
+                    existing_booking = self.search([('name', '=', f"{booking['id']}")])
+                    booking_status = booking.get('status', '')
+                    if not existing_booking:
+                        self.create({
+                            "name": f"{booking['id']}",
+                            "first_name": booking.get('firstName', ''),
+                            "last_name": booking.get('lastName', ''),
+                            "num_adult": booking.get('numAdult', 0),
+                            "num_children": booking.get('numChild', 0),
+                            "booking_date": booking['bookingTime'],
+                            "arrival_date": fields.Date.from_string(booking.get('arrival', '')),
+                            "departure_date": fields.Date.from_string(booking.get('departure', '')),
+                            "room_id": booking.get('roomId', ''),
+                            "property_id": booking.get('propertyId', ''),
+                            "status": booking_status,
+                            "email": booking.get('email', ''),
+                            "created_hotel_reservation": False
+                        })
+                    else:
+                        if booking_status == 'cancelled':
+                            existing_booking.cancel_reservation()
+                        elif booking_status == 'confirmed':
+                            existing_booking.create_hotel_reservation()
+                        existing_reservation = self.env['hotel.reservation'].search([('beds24_booking_id', '=', self.name)], limit=1)
+                        existing_booking.write({
+                            "first_name": booking.get('firstName', ''),
+                            "last_name": booking.get('lastName', ''),
+                            "num_adult": booking.get('numAdult', 0),
+                            "num_children": booking.get('numChild', 0),
+                            "booking_date": booking['bookingTime'],
+                            "arrival_date": fields.Date.from_string(booking.get('arrival', '')),
+                            "departure_date": fields.Date.from_string(booking.get('departure', '')),
+                            "property_id": booking.get('propertyId', ''),
+                            "status": booking_status,
+                            "room_id": booking.get('roomId', ''),
+                            "created_hotel_reservation": True if existing_reservation.beds24_booking_id else False
+                        })
+                except Exception as error:
+                    continue 
+                    
         elif response.status_code == 401:
-            refresh_token = self.env['ir.config_parameter'].get_param("beds24_refresh_token")
-
-            if not refresh_token:
-                raise exceptions.UserError(
-                    _("Refresh Token doesn't exist. Please configure the Beds24 Refresh Token by Authorize."))
-
-            url = 'https://beds24.com/api/v2/authentication/token'
-            headers = {
-                'accept': 'application/json',
-                'refreshToken': refresh_token
-            }
-
-            response = requests.get(url, headers=headers)
-
-            if response.status_code == 200:
-                response = response.json()
-                token = response['token']
-                self.env['ir.config_parameter'].set_param('beds24_token', token)
-                return self.get_beds24_bookings()
-            else:
-                raise exceptions.AccessError(_(f"Request failed with status code {response.status_code}"))
+            Beds24Utils.refresh_token(self.env)
+            return self.get_beds24_bookings()
         else:
             raise exceptions.AccessError(_(f"Request failed with status code {response.status_code}"))
+        beds24_room_type_obj.sync_room_types()
+
 
     @api.model
     def fetch_bookings(self):
