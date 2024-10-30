@@ -119,6 +119,7 @@ class Beds24RoomType(models.Model):
                             "max_children": room.get('maxChildren', existing_room.max_children),
                         })
             elif response.status_code == 401:
+                print("Response", response.json())
                 Beds24Utils.refresh_token(self.env)
                 return self.get_room_types()
                 
@@ -152,17 +153,6 @@ class Beds24RoomType(models.Model):
 
             else:
                 message += f"No associated HotelRoomType found for Beds24RoomType with {room_type.name}\n"
-        
-        return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': 'Room Collection Completed',
-                'message': "All Room Type Units are updated",
-                'type': 'success',
-                'sticky': True,
-            }
-        }
 
 
     def sync_room_types(self):
@@ -188,6 +178,7 @@ class Beds24RoomType(models.Model):
 
             room_type_obj = {
                 "id": room_type.room_id,
+                "qty": 1 if len(units) == 0 else len(units),
                 "units": units,
                 "featureCodes": featureCodes
             }
@@ -210,16 +201,8 @@ class Beds24RoomType(models.Model):
 
         if response.status_code == 200:
 
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': ('Success'),
-                    'message': 'All Room Types has been updated to Beds24',
-                    'type':'success',  #types: success,warning,danger,info
-                    'sticky': True,  #True/False will display for few seconds if false
-                },
-            }
+            print("Response", response.json())
+
 
         elif response.status_code == 401:
 
@@ -227,16 +210,7 @@ class Beds24RoomType(models.Model):
             return self.sync_room_types()
 
         else:
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': ('Error'),
-                    'message': 'Something went wrong while updating Room Types to Beds24',
-                    'type':'success',  #types: success,warning,danger,info
-                    'sticky': True,  #True/False will display for few seconds if false
-                },
-            }
+            print("Response", response.json())
 
 
     def get_room_unit(self):
@@ -254,30 +228,14 @@ class Beds24RoomType(models.Model):
 
             # Update the many-to-many fields
             self.room_ids = [(6, 0, rooms.ids)]
-            self.qty = len(rooms)
-
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': ('Room Collection'),
-                    'message': f'{self.qty} room(s) found',
-                    'type':'success',
-                    'sticky': True,
-                },
-            }
+            self.write({
+                'qty': len(rooms)
+            }) 
 
         else:
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': ('Room Collection'),
-                    'message': f'No Rooms Found',
-                    'type':'success',  #types: success,warning,danger,info
-                    'sticky': True,  #True/False will display for few seconds if false
-                },
-            }
+            self.write({
+                'qty': self.qty
+            }) 
 
 
     def sync_room_type(self):
@@ -288,6 +246,7 @@ class Beds24RoomType(models.Model):
                 "roomTypes": [
                     {
                         "id": self.room_id,
+                        "qty": 1 if len(self.room_ids) == 0 else len(self.room_ids),
                         "units": [
                             {
                                 "id": index + 1,
@@ -306,52 +265,25 @@ class Beds24RoomType(models.Model):
             }
         ]
 
+        print("JSON Body",body)
+
         url = base_url + f"/properties"
         auth_token = self.env['ir.config_parameter'].get_param("beds24_token")
         headers = {'accept': 'application/json', "token": auth_token}
 
         # Use json parameter for the body
         response = requests.post(url, headers=headers, json=body)
-
         if response.status_code == 200:
 
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': ('Success'),
-                    'message': 'All Room Types has been updated to Beds24',
-                    'type':'success',  #types: success,warning,danger,info
-                    'sticky': True,  #True/False will display for few seconds if false
-                },
-            }
+            print("RESPONSE", response.json())
         
         elif response.status_code == 401:
+            print("RESPONSE", response.json())
             Beds24Utils.refresh_token(self.env)
             self.sync_room_types()
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': ('Error'),
-                    'message': 'Something went wrong while updating Room Types to Beds24',
-                    'type':'success',  #types: success,warning,danger,info
-                    'sticky': True,  #True/False will display for few seconds if false
-                },
-            }
         
         else:
-
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': ('Error'),
-                    'message': 'Something went wrong while updating Room Types to Beds24',
-                    'type':'success',  #types: success,warning,danger,info
-                    'sticky': True,  #True/False will display for few seconds if false
-                },
-            }
+            print("RESPONSE", response.json())
 
 
 class HotelRoomType(models.Model):
