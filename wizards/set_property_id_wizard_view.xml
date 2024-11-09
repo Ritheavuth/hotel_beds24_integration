@@ -25,5 +25,5 @@
         <field name="target">new</field>
     </record>
 
-    <menuitem id="menu_property_id_beds24" name="Set Property ID" action="action_set_property_id_beds24" parent="beds24_configs" sequence="1"/>
+    <menuitem id="menu_property_id_beds24" name="Set Property ID" action="action_set_property_id_beds24" parent="hotel_configuration_menu_beds24" sequence="1"/>
 </odoo>

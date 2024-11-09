@@ -61,6 +61,6 @@
         </record>
 
         <!-- Menu item to access the wizard -->
-        <menuitem id="menu_beds24hls_wizard" name="Beds24 Respond" action="action_beds24_hls_wizard" parent="beds24_configs" sequence="2"/>
+        <menuitem id="menu_beds24hls_wizard" name="Beds24 Respond" action="action_beds24_hls_wizard" parent="hotel_configuration_menu_beds24" sequence="2"/>
     </data>
 </odoo>

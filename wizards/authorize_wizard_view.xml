@@ -25,5 +25,5 @@
         <field name="target">new</field>
     </record>
 
-    <menuitem id="menu_authorize_beds24" name="Authorize" action="action_authorize_beds24" parent="beds24_configs" sequence="0"/>
+    <menuitem id="menu_authorize_beds24" name="Authorize" action="action_authorize_beds24" parent="hotel_configuration_menu_beds24" sequence="0"/>
 </odoo>

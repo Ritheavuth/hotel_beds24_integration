@@ -19,9 +19,11 @@
                 <field name="booking_date" />
                 <field name="arrival_date" />
                 <field name="departure_date" />
-                <field name="room_id" />
-                <field name="status" />
                 <field name="property_id" />
+                <field name="room_id" />
+                <field name="referer" />
+                <field name="channel" />
+                <field name="status" />
             </tree>
         </field>
     </record>
@@ -37,10 +39,10 @@
                         <button name="create_hotel_reservation" string="Create Reservation" type="object" class="oe_stat_button" icon="fa-calendar-check-o" attrs="{'invisible': [('created_hotel_reservation', '=', True)]}"/>
 
                         <!-- Button to open an existing reservation if it exists -->
-                        <button name="open_hotel_reservation" string="Open Reservation" type="object" class="oe_stat_button" icon="fa-calendar" attrs="{'invisible': [('created_hotel_reservation', '=', False)]}"/>
+                        <button name="open_reservation" string="Open Reservation" type="object" class="oe_stat_button" icon="fa-calendar" attrs="{'invisible': [('created_hotel_reservation', '=', False)]}"/>
 
                         <!-- Button to cancel the reservation if the reservation status isn't 'cancelled' -->
-                        <button name="cancel_reservation" string="Cancel Reservation" type="object" class="oe_stat_button" icon="fa-ban" attrs="{'invisible': [('status', '=', 'cancelled')]}"/>
+                        <button name="cancel_booking" string="Cancel Booking" type="object" class="oe_stat_button" icon="fa-ban" attrs="{'invisible': [('status', '=', 'cancelled')]}"/>
                     </div>
 
                     <group>
@@ -60,6 +62,8 @@
                             <field name="name" readonly="1" string="Booking Reference" />
                             <field name="booking_date" readonly="1" string="Booking Date" />
                             <field name="status" string="Status" />
+                            <field name="referer" string="Referer" />
+                            <field name="channel" string="Channel" />
                         </group>
                         <group>
                             <field name="num_adult" readonly="1" string="Number of Adults" />
